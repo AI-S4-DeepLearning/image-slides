@@ -1,0 +1,82 @@
+body
+{ word-wrap: break-word; }
+body, h1, em, strong
+{ font-size: 14px;
+  line-height: 20px;
+  font-weight: normal;
+  font-style: normal;
+  font-family: consolas, monaco, courier, "courier new", monospace;
+  color: #333333; }
+h1, ol, ul, li, p, section
+{ float: none;
+  margin: 0;
+  padding: 0; }
+h1, p, ul, ol
+{ margin-top: 20px;
+  margin-bottom: 20px; }
+h1 {
+  position: relative;
+  margin-bottom: 20px; }
+h1:before
+{ content: "# ";
+  display: inline; }
+h2:before
+{ content: "## ";
+  display: inline; }
+li
+{ position: relative;
+  display: block;
+  padding-left: 34px;
+  padding-left: 4ch; }
+li:after
+{ position: absolute;
+  top: 0;
+  left: 0; }
+ul > li:after
+{ content: "*"; }
+ol
+{ counter-reset: ol; }
+ol > li:after
+{ content: counter(ol) ".";
+  counter-increment: ol; }
+strong:before,
+strong:after
+{ content: "__";
+  display: inline; }
+em:before,
+em:after
+{ content: "*";
+  display: inline; }
+a
+{ text-decoration: none; }
+a:before
+{ content: "[";
+  display: inline;
+  color: #333333; }
+a:after
+{ content: "](" attr(href) ")";
+  display: inline;
+  color: #333333; }
+hr
+{ position: relative;
+  height: 20px;
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+  border: 0;
+  margin-bottom: 20px; }
+hr:after
+{ content: "------------------------------------";
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 14px;
+  line-height: 20px;
+  width: 100%;
+  word-wrap: break-word; }
+@-moz-document url-prefix()
+{ h1
+  { display: block; } }
+ol > li:after
+{ content: "1."; }
+

@@ -1,0 +1,18 @@
+emph {
+  color: #30D0FF;
+  text-shadow: 0 0 6px #fff, 0 0 10px #0be, 0 0 20px #0be;
+}
+
+p {
+  margin-top: 0.6rem !important;
+}
+
+ol {
+  margin-top: 1rem !important;
+}
+
+hsp {
+  display: block;
+  height: 5px;
+  width: 100%;
+}
