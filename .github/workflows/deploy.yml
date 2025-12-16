@@ -37,7 +37,7 @@ jobs:
         run: nci
 
       - name: Build
-        run: npx slidev build --base /${{github.event.repository.name}}/ linear_algebra.md
+        run: npx slidev build --base /${{github.event.repository.name}}/ image_processing.md
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
