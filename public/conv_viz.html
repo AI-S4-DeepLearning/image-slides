@@ -1,0 +1,2998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convolution Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --accent-blue: #3b82f6;
+            --accent-teal: #14b8a6;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --grid-border: #e2e8f0;
+            --shadow-glow: rgba(59, 130, 246, 0.15);
+            
+            /* Color scale for kernel: burgundy -> black -> teal/cyan */
+            --color-neg-dark: #5c1f1f;
+            --color-neg-mid: #8b3a3a;
+            --color-neg-light: #c95757;
+            --color-zero: #000000;
+            --color-pos-light: #7dd3d0;
+            --color-pos-mid: #5a9c99;
+            --color-pos-dark: #466e6d;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 2.5rem;
+            font-weight: 400;
+        }
+
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .matrices-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .controls-section {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--grid-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .animation-controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .animation-buttons {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex: 1;
+        }
+
+        .animation-buttons button {
+            padding: 0.75rem 1.25rem;
+            white-space: nowrap;
+        }
+
+        .step-button {
+            padding: 0.75rem 1rem !important;
+        }
+
+        .step-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .matrices-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .import-export-section {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--grid-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-top: 2rem;
+        }
+
+        .relu-checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .relu-checkbox-wrapper:hover {
+            background: #e5e7eb;
+        }
+
+        .checkbox-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid var(--grid-border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-container input[type="checkbox"]:checked ~ .checkbox-custom {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .checkbox-custom::after {
+            content: '';
+            display: none;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-container input[type="checkbox"]:checked ~ .checkbox-custom::after {
+            display: block;
+        }
+
+        .checkbox-label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            user-select: none;
+        }
+
+        .matrix-section button {
+            width: 100%;
+        }
+
+        .matrix-section button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="file"].image-input {
+            display: none;
+        }
+
+        .import-export-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .import-export-buttons button {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            background: #64748b;
+            box-shadow: 0 2px 4px rgba(100, 116, 139, 0.2);
+        }
+
+        .import-export-buttons button:hover {
+            background: #475569;
+            box-shadow: 0 4px 8px rgba(100, 116, 139, 0.3);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .transform-dropdown-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .transform-toggle-button {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .transform-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--grid-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            min-width: 280px;
+        }
+
+        .transform-dropdown.active {
+            display: block;
+        }
+
+        .transform-section {
+            margin-bottom: 1rem;
+        }
+
+        .transform-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .transform-section-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .translate-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            gap: 0.25rem;
+            justify-content: center;
+        }
+
+        .translate-grid button:nth-child(1) { grid-column: 2; grid-row: 1; }
+        .translate-grid button:nth-child(2) { grid-column: 1; grid-row: 2; }
+        .translate-grid button:nth-child(3) { grid-column: 2; grid-row: 2; }
+        .translate-grid button:nth-child(4) { grid-column: 3; grid-row: 2; }
+
+        .rotate-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .transform-button {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            background: white;
+            border: 1.5px solid var(--grid-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .transform-button:hover {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+            transform: scale(1.05);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        .transform-button:active {
+            transform: scale(0.95);
+        }
+
+        .matrix-section {
+            background: var(--bg-secondary);
+            padding: 1.5rem 1.5rem 2rem 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--grid-border);
+            display: flex;
+            flex-direction: column;
+            min-height: 640px;
+        }
+
+        .matrix-section .matrix-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .matrix-section .matrix-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 320px;
+            padding: 30px 0;
+        }
+
+        .matrix-section .button-container {
+            margin-top: 1rem;
+            height: 60px;
+            display: flex;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .matrix-section .button-container button {
+            height: 100%;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            flex: 1;
+        }
+
+        .matrix-label {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .matrix-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .matrix {
+            display: inline-grid;
+            gap: 3px;
+            background: var(--grid-border);
+            padding: 3px;
+            border-radius: 6px;
+            user-select: none;
+        }
+
+        .matrix-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            position: relative;
+            border: 1.5px solid transparent;
+        }
+
+        .matrix-cell:hover {
+            transform: scale(1.05);
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+            z-index: 10;
+        }
+
+        .overlay-kernel {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 1;
+            border: 3px solid var(--accent-blue);
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+            transition: none;
+            background: transparent;
+        }
+
+        .overlay-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: none;
+            opacity: 0.5;
+            border-radius: 6px;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .control-group {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--grid-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            min-height: 120px;
+        }
+
+        .control-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .size-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .size-input {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .size-input label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="number"],
+        select {
+            background: var(--bg-primary);
+            border: 1.5px solid var(--grid-border);
+            color: var(--text-primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 70px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        select {
+            width: auto;
+            min-width: 60px;
+            padding: 0.5rem 0.5rem;
+        }
+
+        #kernelSize,
+        #maxPoolSize {
+            width: 60px;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--shadow-glow);
+        }
+
+        input[type="number"]:hover,
+        select:hover {
+            border-color: #cbd5e1;
+        }
+
+        .slider-control {
+            width: 100%;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: var(--grid-border);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 8px rgba(59, 130, 246, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+
+        .slider-value {
+            text-align: center;
+            margin-top: 0.5rem;
+            color: var(--accent-blue);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        button {
+            background: #e5e7eb;
+            color: #374151;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: #d1d5db;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.playing {
+            background: #fbbf24;
+            color: #78350f;
+            box-shadow: 0 1px 2px rgba(251, 191, 36, 0.2);
+        }
+
+        button.playing:hover {
+            background: #f59e0b;
+            box-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+        }
+
+        .info-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            line-height: 1.5;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .computing {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .output-cell {
+            position: relative;
+        }
+
+        .output-cell.active {
+            border: 2px solid var(--accent-blue);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .animation-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .animation-controls button {
+            white-space: nowrap;
+            padding: 0.75rem 1.5rem;
+        }
+
+        .animation-controls .slider-wrapper {
+            min-width: 200px;
+        }
+
+        .parameters-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .parameters-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .kernel-type-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background: var(--bg-primary);
+            padding: 0.25rem;
+            border-radius: 10px;
+        }
+
+        .kernel-type-button {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .kernel-type-button:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+
+        .kernel-type-button.active {
+            background: #d1d5db;
+            color: #374151;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .kernel-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .maxpool-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .maxpool-matrix {
+            display: inline-grid;
+            gap: 3px;
+            background: var(--grid-border);
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .maxpool-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-radius: 6px;
+            font-size: 1.5rem;
+            color: var(--accent-blue);
+            box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="workspace">
+            <!-- Top Controls Row -->
+            <div class="animation-controls-row">
+                <!-- Animation Controls -->
+                <div class="controls-section">
+                    <div class="control-label">Animation Controls</div>
+                    <div class="animation-buttons">
+                        <button id="stepBackButton" class="step-button">◀ Step</button>
+                        <button id="playButton">▶ Play</button>
+                        <button id="stepForwardButton" class="step-button">Step ▶</button>
+                    </div>
+                </div>
+
+                <!-- Animation Speed -->
+                <div class="controls-section">
+                    <div class="control-label">Speed</div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="speed" min="1" max="10" value="3">
+                        <div class="slider-value" id="speedValue">3</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matrices Row - Main functional areas -->
+            <div class="matrices-row">
+                <!-- Input Section -->
+                <div class="matrix-section">
+                    <div class="matrix-content">
+                        <div class="matrix-label">Input Matrix</div>
+                        
+                        <!-- Import Image Button -->
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <button id="importImageButton" style="flex: 1; margin: 0;">Import Image</button>
+                            <button id="charInputButton" style="flex: 1; margin: 0;" title="Enter character to create pattern">A-Z</button>
+                            <button id="previousInputButton" style="flex: 1; margin: 0;" title="Load previous input matrix">← Previous</button>
+                            <button id="clearInputButton" style="flex: 1; margin: 0;" title="Clear input matrix">Clear</button>
+                        </div>
+                        <input type="file" id="imageInput" class="image-input" accept="image/*">
+                        
+                        <div class="size-controls">
+                            <div class="size-input">
+                                <label>Rows:</label>
+                                <input type="number" id="inputRows" value="5" min="3" max="8">
+                            </div>
+                            <div class="size-input">
+                                <label>Cols:</label>
+                                <input type="number" id="inputCols" value="5" min="3" max="8">
+                            </div>
+                            <div class="transform-dropdown-wrapper">
+                                <button class="transform-toggle-button" id="transformToggleButton">
+                                    🔄 Transform
+                                </button>
+                                <div class="transform-dropdown" id="transformDropdown">
+                                    <div class="transform-section">
+                                        <div class="transform-section-label">Translate</div>
+                                        <div class="translate-grid">
+                                            <button class="transform-button" id="moveUpButton" title="Move Up">↑</button>
+                                            <button class="transform-button" id="moveLeftButton" title="Move Left">←</button>
+                                            <button class="transform-button" id="moveDownButton" title="Move Down">↓</button>
+                                            <button class="transform-button" id="moveRightButton" title="Move Right">→</button>
+                                        </div>
+                                    </div>
+                                    <div class="transform-section">
+                                        <div class="transform-section-label">Rotate</div>
+                                        <div class="rotate-group">
+                                            <button class="transform-button" id="rotateCCWButton" title="Rotate Counter-Clockwise">↺</button>
+                                            <button class="transform-button" id="rotateCWButton" title="Rotate Clockwise">↻</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="matrix-wrapper">
+                            <div id="inputMatrix" class="matrix"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-container" style="display: flex; gap: 0.5rem;">
+                        <button id="exportInputButton" style="flex: 1;">Export JSON</button>
+                        <button id="importInputJsonButton" style="flex: 1;">Import JSON</button>
+                        <button id="copyInputImageButton" style="flex: 1;">Copy Image</button>
+                        <input type="file" id="importInputJsonFile" accept=".json" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Kernel Section -->
+                <div class="matrix-section">
+                    <div class="matrix-content">
+                        <div class="matrix-label">Kernel</div>
+                        
+                        <!-- Kernel Type Selector -->
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <div class="kernel-type-selector" style="flex: 2; margin: 0;">
+                                <button class="kernel-type-button active" id="customKernelButton">Custom Kernel</button>
+                                <button class="kernel-type-button" id="maxPoolButton">Max Pool</button>
+                            </div>
+                            <button id="clearKernelButton" style="flex: 1; margin: 0;" title="Clear kernel matrix">Clear</button>
+                        </div>
+                        
+                        <div id="kernelControls">
+                            <div class="size-controls">
+                                <div class="size-input">
+                                    <label>Size:</label>
+                                    <input type="number" id="kernelSize" value="3" min="2" max="5">
+                                </div>
+                                <div class="size-input">
+                                    <label>Stride:</label>
+                                    <input type="number" id="stride" value="1" min="1" max="3">
+                                </div>
+                                <div class="size-input">
+                                    <label>Pad:</label>
+                                    <input type="number" id="padding" value="0" min="0" max="2">
+                                </div>
+                            </div>
+                            <div class="matrix-wrapper">
+                                <div id="kernelMatrix" class="matrix"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="maxPoolIndicator" class="maxpool-indicator" style="display: none;">
+                            <div class="size-controls">
+                                <div class="size-input">
+                                    <label>Size:</label>
+                                    <input type="number" id="maxPoolSize" value="3" min="2" max="5">
+                                </div>
+                                <div class="size-input">
+                                    <label>Stride:</label>
+                                    <input type="number" id="strideMaxPool" value="1" min="1" max="3">
+                                </div>
+                                <div class="size-input">
+                                    <label>Pad:</label>
+                                    <input type="number" id="paddingMaxPool" value="0" min="0" max="2">
+                                </div>
+                            </div>
+                            <div class="matrix-wrapper">
+                                <div id="maxPoolMatrix" class="maxpool-matrix"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-container" style="display: flex; gap: 0.5rem;">
+                        <button id="exportKernelButton" style="flex: 1;">Export JSON</button>
+                        <button id="importKernelJsonButton" style="flex: 1;">Import JSON</button>
+                        <button id="copyKernelImageButton" style="flex: 1;">Copy Image</button>
+                        <input type="file" id="importKernelJsonFile" accept=".json" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Output Section -->
+                <div class="matrix-section">
+                    <div class="matrix-content">
+                        <div class="matrix-label">Output Matrix</div>
+                        
+                        <!-- Bias Control -->
+                        <div class="size-controls" style="margin: 0 0 1rem 0; justify-content: center;">
+                            <div class="size-input">
+                                <label>Bias:</label>
+                                <input type="number" id="biasInput" value="0" step="0.1" style="width: 90px;">
+                            </div>
+                        </div>
+                        
+                        <!-- ReLU Checkbox -->
+                        <label class="relu-checkbox-wrapper" style="margin: 0 0 1rem 0; min-height: 42px; display: flex; align-items: center;">
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="reluCheckbox">
+                                <span class="checkbox-custom"></span>
+                            </div>
+                            <span class="checkbox-label">Apply ReLU</span>
+                        </label>
+                        
+                        <div class="matrix-wrapper">
+                            <div id="outputMatrix" class="matrix"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-container">
+                        <button id="copyToInputButton">Copy to Input ↻</button>
+                        <button id="copyOutputImageButton">Copy Image</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        class ConvolutionVisualizer {
+            constructor() {
+                this.inputData = [];
+                this.kernelData = [];
+                this.outputData = [];
+                this.computedOutput = []; // Full computed output
+                this.isPlaying = false;
+                this.isPaused = false;
+                this.hasStarted = false;
+                this.animationFrame = null;
+                this.currentPosition = { row: 0, col: 0 };
+                
+                this.inputRows = 5;
+                this.inputCols = 5;
+                this.kernelSize = 3;
+                this.stride = 1;
+                this.padding = 0;
+                this.speed = 3;
+                this.kernelMode = 'custom'; // 'custom' or 'maxpool'
+                this.reluApplied = false;
+                this.bias = 0;
+                this.inputExtendedRange = false; // false: [0,1] grayscale, true: [-inf,+inf] kernel colors
+
+                // Input matrix history (in-memory only, not persistent)
+                this.inputHistory = [];
+                this.currentHistoryIndex = -1;
+                this.maxHistorySize = 20;
+                this.isEditingCell = false; // Track if we're in the middle of editing
+
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.initializeMatrices();
+                this.renderAll();
+                this.updateStepButtons();
+                this.updateCopyButtonState();
+            }
+
+            setupEventListeners() {
+                document.getElementById('inputRows').addEventListener('change', () => {
+                    const newRows = parseInt(document.getElementById('inputRows').value);
+                    this.resizeInputMatrix(newRows, this.inputCols);
+                });
+
+                document.getElementById('inputCols').addEventListener('change', () => {
+                    const newCols = parseInt(document.getElementById('inputCols').value);
+                    this.resizeInputMatrix(this.inputRows, newCols);
+                });
+
+                document.getElementById('kernelSize').addEventListener('change', () => {
+                    const newSize = parseInt(document.getElementById('kernelSize').value);
+                    this.resizeKernelMatrix(newSize);
+                });
+
+                document.getElementById('maxPoolSize').addEventListener('change', () => {
+                    const newSize = parseInt(document.getElementById('maxPoolSize').value);
+                    this.kernelSize = newSize;
+                    document.getElementById('kernelSize').value = newSize;
+                    this.renderMaxPoolMatrix();
+                    this.computeConvolution();
+                    this.renderOutput();
+                });
+
+                document.getElementById('stride').addEventListener('change', () => {
+                    this.stride = parseInt(document.getElementById('stride').value);
+                    // Sync with maxpool stride
+                    document.getElementById('strideMaxPool').value = this.stride;
+                    this.computeConvolution();
+                    this.renderOutput();
+                });
+
+                document.getElementById('padding').addEventListener('change', () => {
+                    this.padding = parseInt(document.getElementById('padding').value);
+                    // Sync with maxpool padding
+                    document.getElementById('paddingMaxPool').value = this.padding;
+                    this.computeConvolution();
+                    this.renderOutput();
+                });
+
+                // MaxPool stride and padding
+                document.getElementById('strideMaxPool').addEventListener('change', () => {
+                    this.stride = parseInt(document.getElementById('strideMaxPool').value);
+                    // Sync with custom kernel stride
+                    document.getElementById('stride').value = this.stride;
+                    this.computeConvolution();
+                    this.renderOutput();
+                });
+
+                document.getElementById('paddingMaxPool').addEventListener('change', () => {
+                    this.padding = parseInt(document.getElementById('paddingMaxPool').value);
+                    // Sync with custom kernel padding
+                    document.getElementById('padding').value = this.padding;
+                    this.computeConvolution();
+                    this.renderOutput();
+                });
+
+                document.getElementById('speed').addEventListener('input', (e) => {
+                    this.speed = parseInt(e.target.value);
+                    document.getElementById('speedValue').textContent = this.speed;
+                });
+
+                document.getElementById('playButton').addEventListener('click', () => {
+                    this.toggleAnimation();
+                });
+
+                document.getElementById('stepBackButton').addEventListener('click', () => {
+                    this.stepBackward();
+                });
+
+                document.getElementById('stepForwardButton').addEventListener('click', () => {
+                    this.stepForward();
+                });
+
+                // Input import/export
+                document.getElementById('exportInputButton').addEventListener('click', () => {
+                    this.exportInputMatrix();
+                });
+
+                document.getElementById('importInputJsonButton').addEventListener('click', () => {
+                    document.getElementById('importInputJsonFile').click();
+                });
+
+                document.getElementById('importInputJsonFile').addEventListener('change', (e) => {
+                    this.importInputMatrix(e);
+                });
+
+                // Kernel import/export
+                document.getElementById('exportKernelButton').addEventListener('click', () => {
+                    this.exportKernelMatrix();
+                });
+
+                document.getElementById('importKernelJsonButton').addEventListener('click', () => {
+                    document.getElementById('importKernelJsonFile').click();
+                });
+
+                document.getElementById('importKernelJsonFile').addEventListener('change', (e) => {
+                    this.importKernelMatrix(e);
+                });
+
+                // Kernel type selector
+                document.getElementById('customKernelButton').addEventListener('click', () => {
+                    this.setKernelMode('custom');
+                });
+
+                document.getElementById('maxPoolButton').addEventListener('click', () => {
+                    this.setKernelMode('maxpool');
+                });
+
+                document.getElementById('reluCheckbox').addEventListener('change', (e) => {
+                    this.reluApplied = e.target.checked;
+                    this.renderOutput();
+                });
+
+                document.getElementById('biasInput').addEventListener('input', (e) => {
+                    this.bias = parseFloat(e.target.value) || 0;
+                    this.renderOutput();
+                });
+
+                document.getElementById('copyToInputButton').addEventListener('click', () => {
+                    this.copyOutputToInput();
+                });
+
+                // Copy as image buttons
+                document.getElementById('copyInputImageButton').addEventListener('click', () => {
+                    this.copyMatrixAsImage('input');
+                });
+
+                document.getElementById('copyKernelImageButton').addEventListener('click', () => {
+                    this.copyMatrixAsImage('kernel');
+                });
+
+                document.getElementById('copyOutputImageButton').addEventListener('click', () => {
+                    this.copyMatrixAsImage('output');
+                });
+
+                // Clear buttons
+                document.getElementById('clearInputButton').addEventListener('click', () => {
+                    this.clearInputMatrix();
+                });
+
+                document.getElementById('clearKernelButton').addEventListener('click', () => {
+                    this.clearKernelMatrix();
+                });
+
+                // Character input button
+                document.getElementById('charInputButton').addEventListener('click', () => {
+                    this.promptCharacterInput();
+                });
+
+                document.getElementById('importImageButton').addEventListener('click', () => {
+                    document.getElementById('imageInput').click();
+                });
+
+                document.getElementById('imageInput').addEventListener('change', (e) => {
+                    this.importImage(e);
+                });
+
+                // Transform dropdown toggle
+                document.getElementById('transformToggleButton').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const dropdown = document.getElementById('transformDropdown');
+                    dropdown.classList.toggle('active');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    const dropdown = document.getElementById('transformDropdown');
+                    const toggleButton = document.getElementById('transformToggleButton');
+                    if (!dropdown.contains(e.target) && e.target !== toggleButton) {
+                        dropdown.classList.remove('active');
+                    }
+                });
+
+                // Transform buttons
+                document.getElementById('moveUpButton').addEventListener('click', () => {
+                    this.translateInput('up');
+                });
+
+                document.getElementById('moveDownButton').addEventListener('click', () => {
+                    this.translateInput('down');
+                });
+
+                document.getElementById('moveLeftButton').addEventListener('click', () => {
+                    this.translateInput('left');
+                });
+
+                document.getElementById('moveRightButton').addEventListener('click', () => {
+                    this.translateInput('right');
+                });
+
+                document.getElementById('rotateCWButton').addEventListener('click', () => {
+                    this.rotateInput('cw');
+                });
+
+                document.getElementById('rotateCCWButton').addEventListener('click', () => {
+                    this.rotateInput('ccw');
+                });
+
+                // Previous input button
+                const self = this;
+                document.getElementById('previousInputButton').addEventListener('click', function() {
+                    self.loadPreviousInput();
+                });
+            }
+
+            updateCopyButtonState() {
+                // Copy button is always enabled (removed the ReLU requirement)
+                const copyButton = document.getElementById('copyToInputButton');
+                if (copyButton) {
+                    copyButton.disabled = false;
+                }
+            }
+
+            resizeInputMatrix(newRows, newCols) {
+                // Save current state to history before resizing
+                this.saveInputToHistory();
+                
+                const oldData = this.inputData;
+                const oldRows = this.inputRows;
+                const oldCols = this.inputCols;
+                
+                this.inputRows = newRows;
+                this.inputCols = newCols;
+                
+                // Create new matrix preserving old values
+                this.inputData = Array(newRows).fill(0).map((_, i) => 
+                    Array(newCols).fill(0).map((_, j) => {
+                        if (i < oldRows && j < oldCols) {
+                            return oldData[i][j];
+                        }
+                        return 0;
+                    })
+                );
+                
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            resizeKernelMatrix(newSize) {
+                const oldData = this.kernelData;
+                const oldSize = this.kernelSize;
+                
+                this.kernelSize = newSize;
+                
+                // Create new matrix preserving old values
+                this.kernelData = Array(newSize).fill(0).map((_, i) => 
+                    Array(newSize).fill(0).map((_, j) => {
+                        if (i < oldSize && j < oldSize) {
+                            return oldData[i][j];
+                        }
+                        return 0;
+                    })
+                );
+                
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            initializeMatrices() {
+                // Initialize input matrix
+                this.inputData = Array(this.inputRows).fill(0).map(() => 
+                    Array(this.inputCols).fill(0)
+                );
+
+                // Initialize kernel matrix
+                this.kernelData = Array(this.kernelSize).fill(0).map(() => 
+                    Array(this.kernelSize).fill(0)
+                );
+
+                // Compute initial convolution
+                this.computeConvolution();
+            }
+
+            computeConvolution() {
+                const paddedInput = this.getPaddedInput();
+                const outputRows = Math.floor((paddedInput.length - this.kernelSize) / this.stride) + 1;
+                const outputCols = Math.floor((paddedInput[0].length - this.kernelSize) / this.stride) + 1;
+
+                this.computedOutput = Array(outputRows).fill(0).map(() => Array(outputCols).fill(0));
+
+                for (let i = 0; i < outputRows; i++) {
+                    for (let j = 0; j < outputCols; j++) {
+                        const startRow = i * this.stride;
+                        const startCol = j * this.stride;
+
+                        if (this.kernelMode === 'maxpool') {
+                            // Max pooling: find maximum value in the window
+                            let maxVal = -Infinity;
+                            for (let ki = 0; ki < this.kernelSize; ki++) {
+                                for (let kj = 0; kj < this.kernelSize; kj++) {
+                                    const val = paddedInput[startRow + ki][startCol + kj];
+                                    if (val > maxVal) {
+                                        maxVal = val;
+                                    }
+                                }
+                            }
+                            this.computedOutput[i][j] = maxVal;
+                        } else {
+                            // Custom kernel convolution
+                            let sum = 0;
+                            for (let ki = 0; ki < this.kernelSize; ki++) {
+                                for (let kj = 0; kj < this.kernelSize; kj++) {
+                                    sum += paddedInput[startRow + ki][startCol + kj] * this.kernelData[ki][kj];
+                                }
+                            }
+                            this.computedOutput[i][j] = sum;
+                        }
+                    }
+                }
+
+                // Reset ReLU state when recomputing
+                this.reluApplied = false;
+                const reluCheckbox = document.getElementById('reluCheckbox');
+                if (reluCheckbox) {
+                    reluCheckbox.checked = false;
+                }
+                this.updateCopyButtonState();
+
+                // Reset animation state when parameters change
+                // This ensures animation restarts from beginning when resumed after changes
+                if (this.isPaused || this.hasStarted) {
+                    this.currentPosition = { row: 0, col: 0 };
+                    this.isPaused = false;
+                    this.hasStarted = false;
+                    this.updatePlayButton();
+                    this.updateStepButtons();
+                }
+
+                // Initialize output data as empty (null values) when not animating
+                if (!this.isPlaying) {
+                    this.outputData = Array(outputRows).fill(0).map(() => Array(outputCols).fill(null));
+                }
+            }
+
+            getPaddedInput() {
+                if (this.padding === 0) return this.inputData;
+
+                const paddedRows = this.inputRows + 2 * this.padding;
+                const paddedCols = this.inputCols + 2 * this.padding;
+                const padded = Array(paddedRows).fill(0).map(() => Array(paddedCols).fill(0));
+
+                // Copy original data into center of padded array
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        padded[i + this.padding][j + this.padding] = this.inputData[i][j];
+                    }
+                }
+
+                return padded;
+            }
+
+            renderAll() {
+                this.renderInput();
+                this.renderKernel();
+                this.renderOutput();
+                
+                // Update button states after all rendering is complete
+                if (typeof this.updatePreviousButtonState === 'function') {
+                    this.updatePreviousButtonState();
+                }
+            }
+
+            renderInput() {
+                const container = document.getElementById('inputMatrix');
+                container.innerHTML = '';
+                container.style.gridTemplateColumns = `repeat(${this.inputCols}, 50px)`;
+
+                this.inputData.forEach((row, i) => {
+                    row.forEach((val, j) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'matrix-cell';
+                        this.updateInputCellDisplay(cell, val);
+
+                        let holdTimeout = null;
+
+                        // Mouse down - start changing
+                        const handleMouseDown = (e) => {
+                            e.preventDefault();
+                            const isRightClick = e.button === 2;
+                            
+                            // Immediate change by 0.1
+                            if (isRightClick) {
+                                if (this.inputExtendedRange) {
+                                    this.inputData[i][j] = this.inputData[i][j] - 0.1;
+                                } else {
+                                    this.inputData[i][j] = Math.max(0, this.inputData[i][j] - 0.1);
+                                }
+                            } else {
+                                if (this.inputExtendedRange) {
+                                    this.inputData[i][j] = this.inputData[i][j] + 0.1;
+                                } else {
+                                    this.inputData[i][j] = Math.min(1, this.inputData[i][j] + 0.1);
+                                }
+                            }
+                            
+                            // Update only this cell's display
+                            this.updateInputCellDisplay(cell, this.inputData[i][j]);
+                            this.computeConvolution();
+                            this.renderOutput();
+
+                            // After holding for 500ms, jump to min/max
+                            holdTimeout = setTimeout(() => {
+                                if (isRightClick) {
+                                    this.inputData[i][j] = this.inputExtendedRange ? -1 : 0;
+                                } else {
+                                    this.inputData[i][j] = 1;
+                                }
+                                this.updateInputCellDisplay(cell, this.inputData[i][j]);
+                                this.computeConvolution();
+                                this.renderOutput();
+                            }, 500);
+                        };
+
+                        const handleMouseUp = () => {
+                            if (holdTimeout) {
+                                clearTimeout(holdTimeout);
+                                holdTimeout = null;
+                            }
+                            
+                            // Save to history AFTER the change is complete
+                            if (typeof this.saveInputToHistory === 'function') {
+                                this.saveInputToHistory();
+                            }
+                        };
+
+                        const handleMouseLeave = () => {
+                            if (holdTimeout) {
+                                clearTimeout(holdTimeout);
+                                holdTimeout = null;
+                            }
+                        };
+
+                        const handleContextMenu = (e) => {
+                            e.preventDefault();
+                        };
+
+                        cell.addEventListener('mousedown', handleMouseDown);
+                        cell.addEventListener('mouseup', handleMouseUp);
+                        cell.addEventListener('mouseleave', handleMouseLeave);
+                        cell.addEventListener('contextmenu', handleContextMenu);
+
+                        container.appendChild(cell);
+                    });
+                });
+            }
+
+            updateInputCellDisplay(cell, val) {
+                if (this.inputExtendedRange) {
+                    // Extended range: normalize to [-1, 1] based on actual data range
+                    // Find the max absolute value in the current input data
+                    let maxAbsVal = 0;
+                    for (let i = 0; i < this.inputRows; i++) {
+                        for (let j = 0; j < this.inputCols; j++) {
+                            maxAbsVal = Math.max(maxAbsVal, Math.abs(this.inputData[i][j]));
+                        }
+                    }
+                    
+                    // Avoid division by zero
+                    if (maxAbsVal === 0) maxAbsVal = 1;
+                    
+                    // Normalize value to [-1, 1] range
+                    const normalizedVal = val / maxAbsVal;
+                    
+                    cell.style.backgroundColor = this.getKernelColor(normalizedVal);
+                    cell.style.color = this.getViridisTextColor(normalizedVal);
+                    cell.textContent = val.toFixed(2);
+                } else {
+                    // Normal range: use grayscale
+                    cell.style.backgroundColor = this.getGrayscaleColor(val);
+                    cell.style.color = val > 0.5 ? '#fff' : '#000';
+                    cell.textContent = val.toFixed(1);
+                }
+            }
+
+            stopHolding() {
+                this.isHolding = false;
+                if (this.holdInterval) {
+                    clearInterval(this.holdInterval);
+                    this.holdInterval = null;
+                }
+            }
+
+            renderKernel() {
+                const container = document.getElementById('kernelMatrix');
+                container.innerHTML = '';
+                container.style.gridTemplateColumns = `repeat(${this.kernelSize}, 50px)`;
+
+                this.kernelData.forEach((row, i) => {
+                    row.forEach((val, j) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'matrix-cell';
+                        this.updateKernelCellDisplay(cell, val);
+
+                        let holdTimeout = null;
+
+                        // Mouse down - start changing
+                        const handleMouseDown = (e) => {
+                            e.preventDefault();
+                            const isRightClick = e.button === 2;
+                            
+                            // Immediate change by 0.1
+                            if (isRightClick) {
+                                this.kernelData[i][j] = Math.max(-1, this.kernelData[i][j] - 0.1);
+                            } else {
+                                this.kernelData[i][j] = Math.min(1, this.kernelData[i][j] + 0.1);
+                            }
+                            
+                            // Update only this cell's display
+                            this.updateKernelCellDisplay(cell, this.kernelData[i][j]);
+                            this.computeConvolution();
+                            this.renderOutput();
+
+                            // After holding for 500ms, jump to min/max
+                            holdTimeout = setTimeout(() => {
+                                if (isRightClick) {
+                                    this.kernelData[i][j] = -1;
+                                } else {
+                                    this.kernelData[i][j] = 1;
+                                }
+                                this.updateKernelCellDisplay(cell, this.kernelData[i][j]);
+                                this.computeConvolution();
+                                this.renderOutput();
+                            }, 500);
+                        };
+
+                        const handleMouseUp = () => {
+                            if (holdTimeout) {
+                                clearTimeout(holdTimeout);
+                                holdTimeout = null;
+                            }
+                        };
+
+                        const handleMouseLeave = () => {
+                            if (holdTimeout) {
+                                clearTimeout(holdTimeout);
+                                holdTimeout = null;
+                            }
+                        };
+
+                        const handleContextMenu = (e) => {
+                            e.preventDefault();
+                        };
+
+                        cell.addEventListener('mousedown', handleMouseDown);
+                        cell.addEventListener('mouseup', handleMouseUp);
+                        cell.addEventListener('mouseleave', handleMouseLeave);
+                        cell.addEventListener('contextmenu', handleContextMenu);
+
+                        container.appendChild(cell);
+                    });
+                });
+            }
+
+            updateKernelCellDisplay(cell, val) {
+                cell.style.backgroundColor = this.getKernelColor(val);
+                cell.style.color = this.getViridisTextColor(val);
+                cell.textContent = val.toFixed(1);
+            }
+
+            renderOutput() {
+                const container = document.getElementById('outputMatrix');
+                container.innerHTML = '';
+                
+                if (this.computedOutput.length === 0) return;
+
+                container.style.gridTemplateColumns = `repeat(${this.computedOutput[0].length}, 50px)`;
+
+                // Calculate max absolute value across all displayed values
+                let maxAbsVal = 0;
+                
+                this.computedOutput.forEach((row, i) => {
+                    row.forEach((computedVal, j) => {
+                        if (this.outputData[i] && this.outputData[i][j] !== null) {
+                            let displayVal = this.outputData[i][j];
+                            // Apply bias
+                            displayVal = displayVal + this.bias;
+                            // Apply ReLU if enabled
+                            if (this.reluApplied) {
+                                displayVal = Math.max(0, displayVal);
+                            }
+                            maxAbsVal = Math.max(maxAbsVal, Math.abs(displayVal));
+                        }
+                    });
+                });
+
+                // If no values computed yet or all zeros, use 1 as default
+                if (maxAbsVal === 0) {
+                    maxAbsVal = 1;
+                }
+
+                this.computedOutput.forEach((row, i) => {
+                    row.forEach((computedVal, j) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'matrix-cell output-cell';
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+
+                        // Check if this cell has been computed in the animation
+                        let displayVal = this.outputData[i] && this.outputData[i][j] !== null 
+                            ? this.outputData[i][j] 
+                            : null;
+
+                        if (displayVal !== null) {
+                            // Apply bias (added to output)
+                            displayVal = displayVal + this.bias;
+                            
+                            // Apply ReLU if enabled: max(0, x)
+                            if (this.reluApplied) {
+                                displayVal = Math.max(0, displayVal);
+                            }
+                            
+                            // Normalize to [-1, 1] based on max absolute value
+                            // This ensures the darkest color corresponds to the highest absolute value
+                            const normalizedVal = displayVal / maxAbsVal;
+                            
+                            cell.style.backgroundColor = this.getKernelColor(normalizedVal);
+                            cell.style.color = this.getViridisTextColor(normalizedVal);
+                            cell.textContent = displayVal.toFixed(2);
+                        } else {
+                            // Not yet computed - show as empty
+                            cell.style.backgroundColor = '#e5e7eb';
+                            cell.style.color = '#9ca3af';
+                            cell.textContent = '—';
+                        }
+
+                        container.appendChild(cell);
+                    });
+                });
+            }
+
+            getGrayscaleColor(value) {
+                const intensity = Math.round(value * 255);
+                return `rgb(${255 - intensity}, ${255 - intensity}, ${255 - intensity})`;
+            }
+
+            getRdBuColor(value) {
+                // Red-Green colormap: Red (negative) → White (zero) → Green (positive)
+                // Clamp value to -1 to 1 range
+                const clampedValue = Math.max(-1, Math.min(1, value));
+                
+                let r, g, b;
+                
+                if (clampedValue < 0) {
+                    // Negative values: interpolate from dark red to white
+                    // -1.0 = dark red, 0.0 = white
+                    const t = Math.abs(clampedValue); // 0 to 1 (where 1 is most negative)
+                    
+                    // Red range: from white (255,255,255) to dark red (103, 0, 31)
+                    r = Math.round(255 - t * (255 - 103));
+                    g = Math.round(255 - t * (255 - 0));
+                    b = Math.round(255 - t * (255 - 31));
+                } else if (clampedValue > 0) {
+                    // Positive values: interpolate from white to dark green
+                    // 0.0 = white, 1.0 = dark green
+                    const t = clampedValue; // 0 to 1
+                    
+                    // Green range: from white (255,255,255) to dark green (0, 100, 0)
+                    r = Math.round(255 - t * (255 - 0));
+                    g = Math.round(255 - t * (255 - 100));
+                    b = Math.round(255 - t * (255 - 0));
+                } else {
+                    // Exactly zero = white
+                    r = 255;
+                    g = 255;
+                    b = 255;
+                }
+                
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            getRdBuTextColor(value) {
+                // Determine if text should be white or black based on background color brightness
+                const clampedValue = Math.max(-1, Math.min(1, value));
+                const absValue = Math.abs(clampedValue);
+                
+                // Use black text for values close to zero (white background)
+                // Use white text for extreme values (dark red or dark blue backgrounds)
+                // Threshold around 0.4 works well
+                return absValue > 0.4 ? '#fff' : '#000';
+            }
+
+            getKernelColor(value) {
+                return this.getRdBuColor(value);
+            }
+
+            getViridisTextColor(value) {
+                // Keep this name for compatibility but use RdBu logic
+                return this.getRdBuTextColor(value);
+            }
+
+            getOutputColor(value, minVal, maxVal) {
+                // Use the same color scheme as kernel: burgundy (-1) -> white (0) -> cyan (1)
+                // Don't normalize based on min/max, use the actual value
+                return this.getKernelColor(value);
+            }
+
+            toggleAnimation() {
+                if (!this.isPlaying && !this.isPaused) {
+                    // Start fresh animation
+                    this.isPlaying = true;
+                    this.isPaused = false;
+                    this.hasStarted = true;
+                    this.currentPosition = { row: 0, col: 0 };
+                    
+                    // Initialize output data as empty
+                    const outputRows = this.computedOutput.length;
+                    const outputCols = this.computedOutput[0].length;
+                    this.outputData = Array(outputRows).fill(0).map(() => Array(outputCols).fill(null));
+                    this.renderOutput();
+                    
+                    this.updatePlayButton();
+                    this.updateStepButtons();
+                    this.animate();
+                } else if (this.isPlaying) {
+                    // Pause
+                    this.isPlaying = false;
+                    this.isPaused = true;
+                    if (this.animationFrame) {
+                        clearTimeout(this.animationFrame);
+                    }
+                    this.updatePlayButton();
+                    this.updateStepButtons();
+                } else if (this.isPaused) {
+                    // Resume
+                    this.isPlaying = true;
+                    this.isPaused = false;
+                    this.updatePlayButton();
+                    this.updateStepButtons();
+                    this.animate();
+                }
+            }
+
+            updatePlayButton() {
+                const button = document.getElementById('playButton');
+                if (this.isPlaying) {
+                    button.textContent = '⏸ Pause';
+                    button.classList.add('playing');
+                } else {
+                    button.textContent = '▶ Play';
+                    button.classList.remove('playing');
+                }
+            }
+
+            updateStepButtons() {
+                const stepBackButton = document.getElementById('stepBackButton');
+                const stepForwardButton = document.getElementById('stepForwardButton');
+                
+                // Step buttons work when not playing
+                const canStepForward = !this.isPlaying;
+                const canStepBack = !this.isPlaying && (this.hasStarted || this.currentPosition.row > 0 || this.currentPosition.col > 0);
+                
+                stepBackButton.disabled = !canStepBack;
+                stepForwardButton.disabled = !canStepForward;
+            }
+
+            stepForward() {
+                if (this.isPlaying) return;
+                
+                if (!this.hasStarted) {
+                    // Initialize if first step
+                    this.hasStarted = true;
+                    this.isPaused = true;
+                    const outputRows = this.computedOutput.length;
+                    const outputCols = this.computedOutput[0].length;
+                    this.outputData = Array(outputRows).fill(0).map(() => Array(outputCols).fill(null));
+                    this.currentPosition = { row: 0, col: 0 };
+                }
+                
+                const outputRows = this.computedOutput.length;
+                const outputCols = this.computedOutput[0].length;
+                
+                // Check if we're already past the end
+                if (this.currentPosition.row >= outputRows) {
+                    return;
+                }
+                
+                // Show overlay for current position BEFORE computing
+                this.showKernelOverlay(this.currentPosition.row, this.currentPosition.col);
+                
+                // Update current position with computed value
+                this.outputData[this.currentPosition.row][this.currentPosition.col] = 
+                    this.computedOutput[this.currentPosition.row][this.currentPosition.col];
+                
+                this.renderOutput();
+                this.highlightCurrentCell();
+                
+                // Move to next position
+                this.currentPosition.col++;
+                if (this.currentPosition.col >= outputCols) {
+                    this.currentPosition.col = 0;
+                    this.currentPosition.row++;
+                }
+            }
+
+            stepBackward() {
+                if (this.isPlaying) return;
+                
+                // If animation hasn't started, do nothing
+                if (!this.hasStarted && this.currentPosition.row === 0 && this.currentPosition.col === 0) {
+                    return;
+                }
+                
+                // Mark as started if stepping back after completion
+                if (!this.hasStarted) {
+                    this.hasStarted = true;
+                    this.isPaused = true;
+                }
+                
+                const outputCols = this.computedOutput[0].length;
+                
+                // Move to previous position
+                this.currentPosition.col--;
+                if (this.currentPosition.col < 0) {
+                    this.currentPosition.row--;
+                    if (this.currentPosition.row < 0) {
+                        this.currentPosition.row = 0;
+                        this.currentPosition.col = 0;
+                        this.hasStarted = false;
+                        this.isPaused = false;
+                        this.updateStepButtons();
+                        return;
+                    }
+                    this.currentPosition.col = outputCols - 1;
+                }
+                
+                // Clear current position
+                this.outputData[this.currentPosition.row][this.currentPosition.col] = null;
+                
+                this.renderOutput();
+                
+                // Show overlay at current position
+                if (this.currentPosition.row > 0 || this.currentPosition.col > 0) {
+                    // Move back one more to show the previous step
+                    let displayRow = this.currentPosition.row;
+                    let displayCol = this.currentPosition.col - 1;
+                    if (displayCol < 0) {
+                        displayRow--;
+                        displayCol = outputCols - 1;
+                    }
+                    if (displayRow >= 0) {
+                        this.highlightCurrentCell();
+                        this.showKernelOverlay(displayRow, displayCol);
+                    } else {
+                        this.removeOverlay();
+                    }
+                } else {
+                    this.removeOverlay();
+                }
+            }
+
+            highlightCurrentCell() {
+                document.querySelectorAll('.output-cell').forEach(cell => {
+                    cell.classList.remove('active');
+                });
+
+                const currentOutputCell = document.querySelector(
+                    `.output-cell[data-row="${this.currentPosition.row}"][data-col="${this.currentPosition.col}"]`
+                );
+                if (currentOutputCell) {
+                    currentOutputCell.classList.add('active');
+                }
+            }
+
+            animate() {
+                if (!this.isPlaying) return;
+
+                const outputRows = this.computedOutput.length;
+                const outputCols = this.computedOutput[0].length;
+
+                // Update the current output cell with computed value
+                this.outputData[this.currentPosition.row][this.currentPosition.col] = 
+                    this.computedOutput[this.currentPosition.row][this.currentPosition.col];
+
+                // Re-render output to show the new value
+                this.renderOutput();
+
+                // Highlight current output cell
+                this.highlightCurrentCell();
+
+                // Show kernel overlay
+                this.showKernelOverlay(this.currentPosition.row, this.currentPosition.col);
+
+                // Move to next position
+                this.currentPosition.col++;
+                if (this.currentPosition.col >= outputCols) {
+                    this.currentPosition.col = 0;
+                    this.currentPosition.row++;
+                }
+
+                // Check if animation is complete
+                if (this.currentPosition.row >= outputRows) {
+                    // Schedule cleanup after showing the last overlay
+                    const delay = this.getAnimationDelay();
+                    setTimeout(() => {
+                        // Animation finished - stop
+                        this.isPlaying = false;
+                        this.isPaused = false;
+                        this.hasStarted = false;
+                        this.updatePlayButton();
+                        this.updateStepButtons();
+                        this.removeOverlay();
+                    }, delay);
+                    return;
+                }
+
+                // Schedule next frame based on speed
+                const delay = this.getAnimationDelay();
+                this.animationFrame = setTimeout(() => this.animate(), delay);
+            }
+
+            getAnimationDelay() {
+                // Speed 1-4: 1000ms to 250ms (linear)
+                if (this.speed <= 4) {
+                    return 1000 / this.speed;
+                }
+                // Speed 5-10: exponentially faster
+                // Speed 5 = ~166ms, Speed 10 = ~10ms (very fast)
+                else {
+                    const speedRange = this.speed - 4; // 1 to 6
+                    return Math.max(10, 200 / Math.pow(1.8, speedRange));
+                }
+            }
+
+            showKernelOverlay(outputRow, outputCol) {
+                this.removeOverlay();
+
+                const inputMatrixElement = document.getElementById('inputMatrix');
+                const matrixWrapper = inputMatrixElement.parentElement;
+                
+                // Get the position of the matrix element relative to its wrapper
+                const matrixRect = inputMatrixElement.getBoundingClientRect();
+                const wrapperRect = matrixWrapper.getBoundingClientRect();
+                const matrixOffsetLeft = matrixRect.left - wrapperRect.left;
+                const matrixOffsetTop = matrixRect.top - wrapperRect.top;
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'overlay-kernel';
+                overlay.id = 'kernelOverlay';
+
+                // Calculate position in padded input space
+                const paddedStartRow = outputRow * this.stride;
+                const paddedStartCol = outputCol * this.stride;
+
+                // Adjust for padding to get position in visual (unpadded) input matrix
+                const visualStartRow = paddedStartRow - this.padding;
+                const visualStartCol = paddedStartCol - this.padding;
+
+                const cellSize = 50;
+                const gap = 3;
+                const borderWidth = 3;
+                
+                // Calculate total size including gaps and border
+                const totalWidth = this.kernelSize * cellSize + (this.kernelSize - 1) * gap;
+                const totalHeight = this.kernelSize * cellSize + (this.kernelSize - 1) * gap;
+                
+                // Position overlay - account for matrix offset, gaps, and border width
+                // Need to align overlay cells with input matrix cells
+                // The cells need 3px offset, but the border needs 1px offset (2px more than cells)
+                const cellAlignmentOffset = 3;
+                const borderOffset = 2;
+                overlay.style.top = `${matrixOffsetTop + visualStartRow * (cellSize + gap) - cellAlignmentOffset + borderOffset}px`;
+                overlay.style.left = `${matrixOffsetLeft + visualStartCol * (cellSize + gap) - cellAlignmentOffset + borderOffset}px`;
+                overlay.style.width = `${totalWidth + 2 * borderWidth}px`;
+                overlay.style.height = `${totalHeight + 2 * borderWidth}px`;
+                overlay.style.display = 'grid';
+                overlay.style.gridTemplateColumns = `repeat(${this.kernelSize}, ${cellSize}px)`;
+                overlay.style.gap = `${gap}px`;
+                overlay.style.padding = `${borderWidth}px`;
+
+                // Render overlay cells
+                const paddedInput = this.getPaddedInput();
+                
+                if (this.kernelMode === 'maxpool') {
+                    // For max pooling, highlight the cell with the maximum value
+                    let maxVal = -Infinity;
+                    let maxI = -1, maxJ = -1;
+                    
+                    // Find max value and its position
+                    for (let ki = 0; ki < this.kernelSize; ki++) {
+                        for (let kj = 0; kj < this.kernelSize; kj++) {
+                            const inputRow = paddedStartRow + ki;
+                            const inputCol = paddedStartCol + kj;
+                            const val = paddedInput[inputRow][inputCol];
+                            if (val > maxVal) {
+                                maxVal = val;
+                                maxI = ki;
+                                maxJ = kj;
+                            }
+                        }
+                    }
+                    
+                    // Render cells with max highlighted
+                    for (let ki = 0; ki < this.kernelSize; ki++) {
+                        for (let kj = 0; kj < this.kernelSize; kj++) {
+                            const cell = document.createElement('div');
+                            cell.className = 'overlay-cell';
+                            
+                            const inputRow = paddedStartRow + ki;
+                            const inputCol = paddedStartCol + kj;
+                            const inputVal = paddedInput[inputRow][inputCol];
+                            
+                            // Highlight the max cell with bright color, others dim
+                            if (ki === maxI && kj === maxJ) {
+                                cell.style.backgroundColor = 'rgba(59, 130, 246, 0.6)'; // Bright blue
+                                cell.style.border = '2px solid #3b82f6';
+                            } else {
+                                cell.style.backgroundColor = 'rgba(100, 116, 139, 0.3)'; // Dim gray
+                            }
+                            
+                            overlay.appendChild(cell);
+                        }
+                    }
+                } else {
+                    // Custom kernel mode - show kernel colors
+                    this.kernelData.forEach((kernelRow, ki) => {
+                        kernelRow.forEach((kernelVal, kj) => {
+                            const cell = document.createElement('div');
+                            cell.className = 'overlay-cell';
+                            
+                            // Use kernel color as background
+                            cell.style.backgroundColor = this.getKernelColor(kernelVal);
+                            
+                            overlay.appendChild(cell);
+                        });
+                    });
+                }
+
+                // Append to the matrix wrapper
+                matrixWrapper.appendChild(overlay);
+            }
+
+            removeOverlay() {
+                const overlay = document.getElementById('kernelOverlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+                document.querySelectorAll('.output-cell').forEach(cell => {
+                    cell.classList.remove('active');
+                });
+            }
+
+            setKernelMode(mode) {
+                this.kernelMode = mode;
+                
+                // Update button states
+                const customButton = document.getElementById('customKernelButton');
+                const maxPoolButton = document.getElementById('maxPoolButton');
+                const kernelControls = document.getElementById('kernelControls');
+                const maxPoolIndicator = document.getElementById('maxPoolIndicator');
+                
+                if (mode === 'custom') {
+                    customButton.classList.add('active');
+                    maxPoolButton.classList.remove('active');
+                    kernelControls.style.display = 'block';
+                    maxPoolIndicator.style.display = 'none';
+                } else {
+                    customButton.classList.remove('active');
+                    maxPoolButton.classList.add('active');
+                    kernelControls.style.display = 'none';
+                    maxPoolIndicator.style.display = 'block';
+                    
+                    // Sync size and render max pool matrix
+                    document.getElementById('maxPoolSize').value = this.kernelSize;
+                    this.renderMaxPoolMatrix();
+                }
+                
+                // Recompute with new mode
+                this.computeConvolution();
+                this.renderOutput();
+            }
+
+            renderMaxPoolMatrix() {
+                const container = document.getElementById('maxPoolMatrix');
+                container.innerHTML = '';
+                container.style.gridTemplateColumns = `repeat(${this.kernelSize}, 50px)`;
+
+                for (let i = 0; i < this.kernelSize; i++) {
+                    for (let j = 0; j < this.kernelSize; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'maxpool-cell';
+                        cell.textContent = '⬆';
+                        container.appendChild(cell);
+                    }
+                }
+            }
+
+            copyOutputToInput() {
+                // Check if we have computed output
+                if (this.computedOutput.length === 0) {
+                    alert('No output to copy. Please run the convolution first.');
+                    return;
+                }
+
+                // Save current state to history before copying
+                this.saveInputToHistory();
+
+                // Get the output dimensions
+                const outputRows = this.computedOutput.length;
+                const outputCols = this.computedOutput[0].length;
+
+                // Update input dimensions
+                this.inputRows = outputRows;
+                this.inputCols = outputCols;
+                document.getElementById('inputRows').value = outputRows;
+                document.getElementById('inputCols').value = outputCols;
+
+                // Enable extended range for input (allows -inf to +inf with kernel colors)
+                this.inputExtendedRange = true;
+
+                // Copy output values to input
+                // Apply ReLU if it's currently enabled
+                this.inputData = Array(outputRows).fill(0).map((_, i) => 
+                    Array(outputCols).fill(0).map((_, j) => {
+                        let value = this.computedOutput[i][j];
+                        if (this.reluApplied) {
+                            value = Math.max(0, value);
+                        }
+                        // No clamping - allow full range
+                        return value;
+                    })
+                );
+
+                // Recompute and render
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            importImage(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                // Check if it's an image
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file.');
+                    event.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Save current state to history before importing
+                        this.saveInputToHistory();
+                        
+                        // Calculate dimensions (max 8x8)
+                        let width = img.width;
+                        let height = img.height;
+                        const maxSize = 8;
+
+                        // Scale down if larger than max
+                        if (width > maxSize || height > maxSize) {
+                            const scale = Math.min(maxSize / width, maxSize / height);
+                            width = Math.round(width * scale);
+                            height = Math.round(height * scale);
+                        }
+
+                        // Ensure at least 3x3
+                        width = Math.max(3, Math.min(8, width));
+                        height = Math.max(3, Math.min(8, height));
+
+                        // Create canvas to process image
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+
+                        // Draw and resize image
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Get image data
+                        const imageData = ctx.getImageData(0, 0, width, height);
+                        const pixels = imageData.data;
+
+                        // Convert to grayscale matrix [0, 1] where 0=white, 1=black
+                        const grayscaleMatrix = [];
+                        for (let y = 0; y < height; y++) {
+                            const row = [];
+                            for (let x = 0; x < width; x++) {
+                                const idx = (y * width + x) * 4;
+                                const r = pixels[idx];
+                                const g = pixels[idx + 1];
+                                const b = pixels[idx + 2];
+                                
+                                // Convert to grayscale using standard weights
+                                // Then invert: 1 - gray so that 0=white, 1=black
+                                const gray = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                                row.push(1 - gray);
+                            }
+                            grayscaleMatrix.push(row);
+                        }
+
+                        // Update input with image data
+                        this.inputRows = height;
+                        this.inputCols = width;
+                        document.getElementById('inputRows').value = height;
+                        document.getElementById('inputCols').value = width;
+                        this.inputData = grayscaleMatrix;
+                        
+                        // Reset to normal range mode (grayscale)
+                        this.inputExtendedRange = false;
+
+                        // Recompute and render
+                        this.computeConvolution();
+                        this.renderAll();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+
+                // Reset file input
+                event.target.value = '';
+            }
+
+            translateInput(direction) {
+                // Save current state to history before translating
+                if (typeof this.saveInputToHistory === 'function') {
+                    this.saveInputToHistory();
+                }
+                
+                // Create a copy of the current data
+                const oldData = this.inputData.map(row => [...row]);
+                
+                // Create new empty matrix
+                const newData = Array(this.inputRows).fill(0).map(() => 
+                    Array(this.inputCols).fill(0)
+                );
+
+                // Copy data with translation
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        let sourceI = i;
+                        let sourceJ = j;
+
+                        switch(direction) {
+                            case 'up':
+                                sourceI = (i + 1) % this.inputRows;
+                                break;
+                            case 'down':
+                                sourceI = (i - 1 + this.inputRows) % this.inputRows;
+                                break;
+                            case 'left':
+                                sourceJ = (j + 1) % this.inputCols;
+                                break;
+                            case 'right':
+                                sourceJ = (j - 1 + this.inputCols) % this.inputCols;
+                                break;
+                        }
+
+                        newData[i][j] = oldData[sourceI][sourceJ];
+                    }
+                }
+
+                this.inputData = newData;
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            rotateInput(direction) {
+                // Save current state to history before rotating
+                if (typeof this.saveInputToHistory === 'function') {
+                    this.saveInputToHistory();
+                }
+                
+                // Create a new matrix for rotation
+                const newData = Array(this.inputCols).fill(0).map(() => 
+                    Array(this.inputRows).fill(0)
+                );
+
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        if (direction === 'cw') {
+                            // Clockwise: (i,j) -> (j, rows-1-i)
+                            newData[j][this.inputRows - 1 - i] = this.inputData[i][j];
+                        } else {
+                            // Counter-clockwise: (i,j) -> (cols-1-j, i)
+                            newData[this.inputCols - 1 - j][i] = this.inputData[i][j];
+                        }
+                    }
+                }
+
+                // Swap dimensions
+                const tempRows = this.inputRows;
+                this.inputRows = this.inputCols;
+                this.inputCols = tempRows;
+
+                // Update UI
+                document.getElementById('inputRows').value = this.inputRows;
+                document.getElementById('inputCols').value = this.inputCols;
+
+                this.inputData = newData;
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            saveInputToHistory() {
+                // Create a snapshot of the current input state
+                const snapshot = {
+                    data: this.inputData.map(row => [...row]),
+                    rows: this.inputRows,
+                    cols: this.inputCols,
+                    extendedRange: this.inputExtendedRange
+                };
+
+                // If we're not at the end of history, remove all items after current index
+                if (this.currentHistoryIndex < this.inputHistory.length - 1) {
+                    this.inputHistory = this.inputHistory.slice(0, this.currentHistoryIndex + 1);
+                }
+
+                // Add new snapshot to history
+                this.inputHistory.push(snapshot);
+                this.currentHistoryIndex++;
+
+                // Limit history size
+                if (this.inputHistory.length > this.maxHistorySize) {
+                    this.inputHistory.shift();
+                    this.currentHistoryIndex--;
+                }
+
+                if (typeof this.updatePreviousButtonState === 'function') {
+                    this.updatePreviousButtonState();
+                }
+            }
+
+            updatePreviousButtonState() {
+                const button = document.getElementById('previousInputButton');
+                if (button) {
+                    button.disabled = this.currentHistoryIndex <= 0;
+                }
+            }
+
+            loadPreviousInput() {
+                // Check if there's a previous state
+                if (this.currentHistoryIndex <= 0) {
+                    return;
+                }
+
+                // Move back in history
+                this.currentHistoryIndex--;
+                const snapshot = this.inputHistory[this.currentHistoryIndex];
+
+                // Restore the snapshot
+                this.inputData = snapshot.data.map(row => [...row]);
+                this.inputRows = snapshot.rows;
+                this.inputCols = snapshot.cols;
+                this.inputExtendedRange = snapshot.extendedRange;
+
+                // Update UI
+                document.getElementById('inputRows').value = this.inputRows;
+                document.getElementById('inputCols').value = this.inputCols;
+
+                // Re-render
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            promptCharacterInput() {
+                console.log('promptCharacterInput called');
+                const char = prompt('Enter a single character (A-Z, 0-9):');
+                
+                console.log('User entered:', char);
+                
+                if (!char) return;
+                
+                if (char.length !== 1) {
+                    alert('Please enter exactly one character');
+                    return;
+                }
+                
+                this.createCharacterMatrix(char.toUpperCase());
+            }
+
+            createCharacterMatrix(char) {
+                // Save current state to history before creating character
+                if (typeof this.saveInputToHistory === 'function') {
+                    this.saveInputToHistory();
+                }
+
+                // Create a 5x5 character pattern (simple bitmap font)
+                const charPatterns = {
+                    'A': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'B': [
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0]
+                    ],
+                    'C': [
+                        [0, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0],
+                        [0, 1, 1, 1, 1]
+                    ],
+                    'D': [
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0]
+                    ],
+                    'E': [
+                        [1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1]
+                    ],
+                    'F': [
+                        [1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0]
+                    ],
+                    'G': [
+                        [0, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 1, 1, 1],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    'H': [
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'I': [
+                        [1, 1, 1, 1, 1],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [1, 1, 1, 1, 1]
+                    ],
+                    'J': [
+                        [0, 0, 0, 1, 1],
+                        [0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    'K': [
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 1, 0],
+                        [1, 1, 1, 0, 0],
+                        [1, 0, 0, 1, 0],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'L': [
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1]
+                    ],
+                    'M': [
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 0, 1, 1],
+                        [1, 0, 1, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'N': [
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 0, 0, 1],
+                        [1, 0, 1, 0, 1],
+                        [1, 0, 0, 1, 1],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'O': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    'P': [
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 0, 0, 0, 0]
+                    ],
+                    'Q': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 1, 0],
+                        [0, 1, 1, 0, 1]
+                    ],
+                    'R': [
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 1, 0],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'S': [
+                        [0, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0],
+                        [0, 1, 1, 1, 0],
+                        [0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0]
+                    ],
+                    'T': [
+                        [1, 1, 1, 1, 1],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0]
+                    ],
+                    'U': [
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    'V': [
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 0, 1, 0],
+                        [0, 0, 1, 0, 0]
+                    ],
+                    'W': [
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 0, 0, 1],
+                        [1, 0, 1, 0, 1],
+                        [1, 1, 0, 1, 1],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'X': [
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 0, 1, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 1, 0, 1, 0],
+                        [1, 0, 0, 0, 1]
+                    ],
+                    'Y': [
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 0, 1, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0]
+                    ],
+                    'Z': [
+                        [1, 1, 1, 1, 1],
+                        [0, 0, 0, 1, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 1, 0, 0, 0],
+                        [1, 1, 1, 1, 1]
+                    ],
+                    '0': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 1, 1],
+                        [1, 0, 1, 0, 1],
+                        [1, 1, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    '1': [
+                        [0, 0, 1, 0, 0],
+                        [0, 1, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    '2': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [0, 0, 0, 1, 0],
+                        [0, 0, 1, 0, 0],
+                        [1, 1, 1, 1, 1]
+                    ],
+                    '3': [
+                        [1, 1, 1, 1, 0],
+                        [0, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0],
+                        [0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0]
+                    ],
+                    '4': [
+                        [1, 0, 0, 1, 0],
+                        [1, 0, 0, 1, 0],
+                        [1, 1, 1, 1, 1],
+                        [0, 0, 0, 1, 0],
+                        [0, 0, 0, 1, 0]
+                    ],
+                    '5': [
+                        [1, 1, 1, 1, 1],
+                        [1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 0],
+                        [0, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 0]
+                    ],
+                    '6': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    '7': [
+                        [1, 1, 1, 1, 1],
+                        [0, 0, 0, 0, 1],
+                        [0, 0, 0, 1, 0],
+                        [0, 0, 1, 0, 0],
+                        [0, 1, 0, 0, 0]
+                    ],
+                    '8': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ],
+                    '9': [
+                        [0, 1, 1, 1, 0],
+                        [1, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 1],
+                        [0, 0, 0, 0, 1],
+                        [0, 1, 1, 1, 0]
+                    ]
+                };
+
+                const pattern = charPatterns[char];
+                
+                if (!pattern) {
+                    alert('Character "' + char + '" is not available.');
+                    return;
+                }
+
+                // Set input to 5x5 if not already
+                if (this.inputRows !== 5 || this.inputCols !== 5) {
+                    this.inputRows = 5;
+                    this.inputCols = 5;
+                    document.getElementById('inputRows').value = 5;
+                    document.getElementById('inputCols').value = 5;
+                }
+
+                // Set the pattern
+                this.inputData = pattern.map(row => row.map(val => val));
+                
+                // Reset to normal range mode (grayscale)
+                this.inputExtendedRange = false;
+
+                // Recompute and render
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            clearInputMatrix() {
+                // Save current state to history before clearing
+                if (typeof this.saveInputToHistory === 'function') {
+                    this.saveInputToHistory();
+                }
+
+                // Reset all cells to 0
+                this.inputData = Array(this.inputRows).fill(0).map(() => 
+                    Array(this.inputCols).fill(0)
+                );
+
+                // Reset to normal range mode (grayscale)
+                this.inputExtendedRange = false;
+
+                // Recompute and render
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            clearKernelMatrix() {
+                // Reset all cells to 0
+                this.kernelData = Array(this.kernelSize).fill(0).map(() => 
+                    Array(this.kernelSize).fill(0)
+                );
+
+                // Recompute and render
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            async copyMatrixAsImage(matrixType) {
+                try {
+                    // Get the appropriate matrix element
+                    let matrixElement;
+                    if (matrixType === 'input') {
+                        matrixElement = document.getElementById('inputMatrix');
+                    } else if (matrixType === 'kernel') {
+                        matrixElement = document.getElementById('kernelMatrix');
+                    } else if (matrixType === 'output') {
+                        matrixElement = document.getElementById('outputMatrix');
+                    }
+
+                    if (!matrixElement) {
+                        alert('Matrix not found');
+                        return;
+                    }
+
+                    // Create a canvas with the matrix size
+                    const canvas = document.createElement('canvas');
+                    const rect = matrixElement.getBoundingClientRect();
+                    
+                    // Set canvas size to match the matrix element
+                    canvas.width = rect.width;
+                    canvas.height = rect.height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Fill with white background
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Get all cells
+                    const cells = matrixElement.querySelectorAll('.matrix-cell');
+                    const computedStyle = getComputedStyle(matrixElement);
+                    const gap = parseInt(computedStyle.gap) || 3;
+                    
+                    // Calculate cell size
+                    const cellSize = 50;
+                    
+                    // Draw each cell
+                    cells.forEach((cell, index) => {
+                        const cellRect = cell.getBoundingClientRect();
+                        const x = cellRect.left - rect.left;
+                        const y = cellRect.top - rect.top;
+                        
+                        // Get cell background color
+                        const bgColor = getComputedStyle(cell).backgroundColor;
+                        ctx.fillStyle = bgColor;
+                        ctx.fillRect(x, y, cellSize, cellSize);
+                        
+                        // Draw cell text
+                        const text = cell.textContent;
+                        const textColor = getComputedStyle(cell).color;
+                        ctx.fillStyle = textColor;
+                        ctx.font = '600 13px "Plus Jakarta Sans", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(text, x + cellSize / 2, y + cellSize / 2);
+                    });
+
+                    // Convert canvas to blob
+                    canvas.toBlob(async (blob) => {
+                        try {
+                            await navigator.clipboard.write([
+                                new ClipboardItem({
+                                    'image/png': blob
+                                })
+                            ]);
+                        } catch (err) {
+                            console.error('Failed to copy image:', err);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error copying matrix as image:', error);
+                }
+            }
+
+            exportInputMatrix() {
+                const data = {
+                    type: 'input',
+                    rows: this.inputRows,
+                    cols: this.inputCols,
+                    data: this.inputData,
+                    extendedRange: this.inputExtendedRange
+                };
+                
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'input_matrix.json';
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+
+            importInputMatrix(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        
+                        if (json.type !== 'input') {
+                            alert('Invalid file: This is not an input matrix file.');
+                            return;
+                        }
+
+                        // Save current state to history before importing
+                        this.saveInputToHistory();
+
+                        // Update dimensions
+                        this.inputRows = json.rows;
+                        this.inputCols = json.cols;
+                        document.getElementById('inputRows').value = json.rows;
+                        document.getElementById('inputCols').value = json.cols;
+
+                        // Update data and extended range flag
+                        this.inputData = json.data;
+                        this.inputExtendedRange = json.extendedRange || false;
+
+                        // Re-render
+                        this.computeConvolution();
+                        this.renderAll();
+                    } catch (error) {
+                        alert('Error importing file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset file input
+                event.target.value = '';
+            }
+
+            exportKernelMatrix() {
+                const data = {
+                    type: 'kernel',
+                    size: this.kernelSize,
+                    data: this.kernelData
+                };
+                
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'kernel_matrix.json';
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+
+            importKernelMatrix(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        
+                        if (json.type !== 'kernel') {
+                            alert('Invalid file: This is not a kernel matrix file.');
+                            return;
+                        }
+
+                        // Update dimensions
+                        this.kernelSize = json.size;
+                        document.getElementById('kernelSize').value = json.size;
+
+                        // Update data
+                        this.kernelData = json.data;
+
+                        // Re-render
+                        this.computeConvolution();
+                        this.renderAll();
+                    } catch (error) {
+                        alert('Error importing file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset file input
+                event.target.value = '';
+            }
+
+            translateInput(direction) {
+                // Save current state to history before translating
+                if (typeof this.saveInputToHistory === 'function') {
+                    this.saveInputToHistory();
+                }
+                
+                // Create a copy of the current data
+                const oldData = this.inputData.map(row => [...row]);
+                
+                // Create new empty matrix
+                const newData = Array(this.inputRows).fill(0).map(() => 
+                    Array(this.inputCols).fill(0)
+                );
+
+                // Copy data with translation
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        let sourceI = i;
+                        let sourceJ = j;
+
+                        switch(direction) {
+                            case 'up':
+                                sourceI = (i + 1) % this.inputRows;
+                                break;
+                            case 'down':
+                                sourceI = (i - 1 + this.inputRows) % this.inputRows;
+                                break;
+                            case 'left':
+                                sourceJ = (j + 1) % this.inputCols;
+                                break;
+                            case 'right':
+                                sourceJ = (j - 1 + this.inputCols) % this.inputCols;
+                                break;
+                        }
+
+                        newData[i][j] = oldData[sourceI][sourceJ];
+                    }
+                }
+
+                this.inputData = newData;
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            rotateInput(direction) {
+                // Save current state to history before rotating
+                if (typeof this.saveInputToHistory === 'function') {
+                    this.saveInputToHistory();
+                }
+                
+                // Create a new matrix for rotation
+                const newData = Array(this.inputCols).fill(0).map(() => 
+                    Array(this.inputRows).fill(0)
+                );
+
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        if (direction === 'cw') {
+                            // Clockwise: (i,j) -> (j, rows-1-i)
+                            newData[j][this.inputRows - 1 - i] = this.inputData[i][j];
+                        } else {
+                            // Counter-clockwise: (i,j) -> (cols-1-j, i)
+                            newData[this.inputCols - 1 - j][i] = this.inputData[i][j];
+                        }
+                    }
+                }
+
+                // Swap dimensions
+                const tempRows = this.inputRows;
+                this.inputRows = this.inputCols;
+                this.inputCols = tempRows;
+
+                // Update UI
+                document.getElementById('inputRows').value = this.inputRows;
+                document.getElementById('inputCols').value = this.inputCols;
+
+                this.inputData = newData;
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            translateInput(direction) {
+                // Save current state to history before translating
+                this.saveInputToHistory();
+                
+                // Create a copy of the current data
+                const oldData = this.inputData.map(row => [...row]);
+                
+                // Create new empty matrix
+                const newData = Array(this.inputRows).fill(0).map(() => 
+                    Array(this.inputCols).fill(0)
+                );
+
+                // Copy data with translation
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        let sourceI = i;
+                        let sourceJ = j;
+
+                        switch(direction) {
+                            case 'up':
+                                sourceI = (i + 1) % this.inputRows;
+                                break;
+                            case 'down':
+                                sourceI = (i - 1 + this.inputRows) % this.inputRows;
+                                break;
+                            case 'left':
+                                sourceJ = (j + 1) % this.inputCols;
+                                break;
+                            case 'right':
+                                sourceJ = (j - 1 + this.inputCols) % this.inputCols;
+                                break;
+                        }
+
+                        newData[i][j] = oldData[sourceI][sourceJ];
+                    }
+                }
+
+                this.inputData = newData;
+                this.computeConvolution();
+                this.renderAll();
+            }
+
+            rotateInput(direction) {
+                // Save current state to history before rotating
+                this.saveInputToHistory();
+                
+                // Create a new matrix for rotation
+                const newData = Array(this.inputCols).fill(0).map(() => 
+                    Array(this.inputRows).fill(0)
+                );
+
+                for (let i = 0; i < this.inputRows; i++) {
+                    for (let j = 0; j < this.inputCols; j++) {
+                        if (direction === 'cw') {
+                            // Clockwise: (i,j) -> (j, rows-1-i)
+                            newData[j][this.inputRows - 1 - i] = this.inputData[i][j];
+                        } else {
+                            // Counter-clockwise: (i,j) -> (cols-1-j, i)
+                            newData[this.inputCols - 1 - j][i] = this.inputData[i][j];
+                        }
+                    }
+                }
+
+                // Swap dimensions
+                const tempRows = this.inputRows;
+                this.inputRows = this.inputCols;
+                this.inputCols = tempRows;
+
+                // Update UI
+                document.getElementById('inputRows').value = this.inputRows;
+                document.getElementById('inputCols').value = this.inputCols;
+
+                this.inputData = newData;
+                this.computeConvolution();
+                this.renderAll();
+            }
+        }
+
+        // Initialize the visualizer
+        const visualizer = new ConvolutionVisualizer();
+    </script>
+</body>
+</html>
