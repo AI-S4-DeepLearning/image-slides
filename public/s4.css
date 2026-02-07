@@ -16,3 +16,18 @@ hsp {
   height: 5px;
   width: 100%;
 }
+
+code, pre {
+  font-weight: bold !important;
+}
+
+footnote, rfootnote {
+  font-style: italic;
+  position: absolute;
+  display-style: block;
+  bottom: 1.5em;
+}
+
+rfootnote {
+  right: 1.5em;
+}
