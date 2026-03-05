@@ -6,6 +6,7 @@
   
   outputs = { self, nixpkgs }: {
     devShells.x86_64-linux.default = nixpkgs.legacyPackages.x86_64-linux.mkShell {
+      name = "Slidev";
       packages = with nixpkgs.legacyPackages.x86_64-linux; [
           nodejs chromium
       ];
