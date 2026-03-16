@@ -116,7 +116,12 @@ image: python.jpg
 - Plot met `matplotlib`.
 
 ```python
-img_arr = np.asarray("/path/to/image.png")
+import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+
+img_arr = Image.open("/path/to/image.png")
+img_arr = np.asarray(img)
 
 plt.imshow(img_arr, interpolation="nearest")
 plt.show()
