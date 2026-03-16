@@ -120,7 +120,7 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 
-img_arr = Image.open("/path/to/image.png")
+img = Image.open("/path/to/image.png")
 img_arr = np.asarray(img)
 
 plt.imshow(img_arr, interpolation="nearest")
