@@ -123,6 +123,26 @@ plt.show()
 ```
 
 ---
+layout: chaptertitle
+---
+
+## Oefening
+
+Plaatjes inladen met `PIL` en basic mainpulatie
+
+<!--
+
+- Spiegelen
+- Individuele channels
+- Zwart-wit
+  - Zwart-wit-rood
+
+-->
+
+
+---
+disabled: true
+---
 
 # Sommatie en Einstein Notatie
 
