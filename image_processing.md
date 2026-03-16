@@ -231,6 +231,8 @@ $[f * g]$ is een functie die is samengesteld met de functies $f$ en $g$.
 - Conceptueel doen we met een convolutie dezelfde operatie, maar nu hebben we niet oneindig waardes om te beschouwen.
 
 ---
+disabled: true
+---
 
 # Convoluties op lijsten
 
@@ -336,10 +338,38 @@ layout: chaptertitle
 ## Matrix Convoluties in Python (pt I)
 
 ---
+layout: image
+image: box_blur.gif
+---
 
-# Concreet voorbeeld: Box blur
+# Concreet voorbeeld
 
-TODO animatie
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+
+## Box blur
+
+<hsp />
+<hsp />
+
+- Simple convolutie-kernel
+- Neemt steeds gemiddelde
+    - alle waardes tellen even zwaar
+    - som van de gewichten is $1$
+
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+<hsp />
+
+$\qquad\mathbf K = \dfrac19 \begin{bmatrix} 1 & 1 & 1 \\ 1 & 1 & 1 \\ 1 & 1 & 1 \end{bmatrix}$
 
 ---
 layout: image-right
@@ -359,6 +389,9 @@ $$\frac{1}{8}\begin{bmatrix}-1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1\end{bmatrix}$
 <footnote>Image: Frida Kahlo</footnote>
 
 ---
+layout: image-right
+image: channels.svg
+---
 
 # Convoluties met meerdere channels
 
@@ -371,8 +404,45 @@ $$\frac{1}{8}\begin{bmatrix}-1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1\end{bmatrix}$
 layout: chaptertitle
 ---
 
-# Oefening
-## Matrix Convoluties in Python (pt I)
+## Oefening
+Matrix Convoluties in Python (pt I)
+
+---
+
+# Edge Detection
+
+- Voor Seam Carving zullen we Sobel gebruiken voor edge detection
+  - We doen dit op basis van de helderheid van de pixel (gemiddelde pixelwaarde over R, G, en B)
+   - Het resultaat is niet in de range $(0,1)$, maar $(-1, 1)$
+   - We gebruiken kleur (rood/cyaan) voor de sign, en intensiteit voor de absolute waarde
+
+![](./sobel.png)
+
+---
+layout: image-right
+image: gradient.png
+---
+
+# Sobel
+
+- Sobel komt in horizontale en verticale variant
+$$\mathbf S_x = \frac{1}{8}\begin{bmatrix}-1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1\end{bmatrix}\qquad
+\mathbf S_y = \frac{1}{8}\begin{bmatrix}-1 & -2 & -1 \\ 0 & 0 & 0 \\ 1 & 2 & 1\end{bmatrix}$$
+
+- Beide werken als een (discrete) parti&euml;le afgeleide van de image $I$:
+$$\mathbf S_x \cong \frac{\partial I}{\partial x}\qquad \mathbf S_y \cong \frac{\partial I}{\partial y}$$
+- Deze gaan we gebruiken om te bepalen welk deel van een plaatje interessant is
+- Deze twee componenten vormen samen de (discrete) gradient $\nabla$ van de image $I$
+
+$$\nabla I = \frac{\partial I}{\partial x}\ket e_1 + \frac{\partial I}{\partial y}\ket e_2$$
+
+---
+layout: chaptertitle
+---
+
+## Oefening
+Matrix Convoluties in Python (pt II)
+
 
 ---
 layout: chaptertitle
@@ -425,6 +495,14 @@ image: energy_map.png
   - Computationeel duur: heel veel mogelijke paden
   - Dynamisch programmeren om rekentijd te besparen
     - Bouw een map van beneden naar boven op met het beste (laagste energie) pad vanaf die pixel
+
+---
+
+# Energy map
+
+Het resultaat moet er ongeveer zo uit komen te zien:
+
+![](./seam2.png)
 
 ---
 layout: image-right
