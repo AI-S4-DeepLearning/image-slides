@@ -408,6 +408,9 @@ layout: chaptertitle
 Matrix Convoluties in Python (pt I)
 
 ---
+layout: image-left
+image: sobel.png
+---
 
 # Edge Detection
 
@@ -415,8 +418,6 @@ Matrix Convoluties in Python (pt I)
   - We doen dit op basis van de helderheid van de pixel (gemiddelde pixelwaarde over R, G, en B)
    - Het resultaat is niet in de range $(0,1)$, maar $(-1, 1)$
    - We gebruiken kleur (rood/cyaan) voor de sign, en intensiteit voor de absolute waarde
-
-![](sobel.png)
 
 ---
 layout: image-right
@@ -497,12 +498,17 @@ image: energy_map.png
     - Bouw een map van beneden naar boven op met het beste (laagste energie) pad vanaf die pixel
 
 ---
+layout: image-right
+image: seam2.png
+---
 
 # Energy map
 
-Het resultaat moet er ongeveer zo uit komen te zien:
-
-![](seam2.png)
+Het resultaat moet er ongeveer zo uit zien:
+ - Energy-waarden worden doorgegeven naar boven
+ - Op een gegeven moment zien we schuine zijden ontstaan
+    - Hier is er voor het eerst een escape pad om niet in de high-energy areas terecht te komen.
+  - Het meest donkere pad geeft de seam aan die we willen verwijderen (rood gemarkeerd ter identificatie)
 
 ---
 layout: image-right
