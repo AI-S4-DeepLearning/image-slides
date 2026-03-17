@@ -416,7 +416,7 @@ Matrix Convoluties in Python (pt I)
    - Het resultaat is niet in de range $(0,1)$, maar $(-1, 1)$
    - We gebruiken kleur (rood/cyaan) voor de sign, en intensiteit voor de absolute waarde
 
-![](./sobel.png)
+![](sobel.png)
 
 ---
 layout: image-right
@@ -502,7 +502,7 @@ image: energy_map.png
 
 Het resultaat moet er ongeveer zo uit komen te zien:
 
-![](./seam2.png)
+![](seam2.png)
 
 ---
 layout: image-right
